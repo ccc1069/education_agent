@@ -1,0 +1,127 @@
+# 生产环境覆盖:加强资源、扩大副本、强化安全。
+
+# 生产用更高副本数下限
+replicaCount: 5
+
+# 生产资源放宽(LLM 调用 + RAG 检索 + 大并发)
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+# HPA 上调
+autoscaling:
+  enabled: true
+  minReplicas: 5
+  maxReplicas: 50
+  targetCPUUtilizationPercentage: 65
+  targetMemoryUtilizationPercentage: 80
+
+# 生产域名
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/websocket-services: "multi-agent-edu"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: api.edu.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: multi-agent-edu-tls
+      hosts:
+        - api.edu.example.com
+
+# 生产日志级别
+config:
+  env: production
+  logLevel: WARNING
+  corsOrigins: "https://app.edu.example.com"
+  jwtExpiresMinutes: 15
+  rateLimitGlobalPerMin: 200
+  rateLimitLoginPerMin: 5
+
+# 生产 PDB(至少保留 2 个)
+pdb:
+  enabled: true
+  minAvailable: 2
+
+# 生产 NetworkPolicy(更严格)
+networkPolicy:
+  enabled: true
+  ingressFromNamespaces:
+    - ingress-nginx
+    - monitoring
+    - multi-agent-edu
+
+# PostgreSQL HA(主从)
+postgresql:
+  enabled: true
+  architecture: replication
+  auth:
+    postgresPassword: "REPLACE_WITH_SEALED_SECRET"
+    database: edu_agent
+  primary:
+    persistence:
+      size: 100Gi
+      storageClass: fast-ssd
+    resources:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+  readReplicas:
+    persistence:
+      size: 100Gi
+      storageClass: fast-ssd
+
+# Redis HA
+redis:
+  enabled: true
+  architecture: replication
+  auth:
+    enabled: true
+    password: "REPLACE_WITH_SEALED_SECRET"
+  master:
+    persistence:
+      size: 20Gi
+      storageClass: fast-ssd
+  replica:
+    replicaCount: 2
+
+# 跨可用区分布
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: multi-agent-edu
+        topologyKey: topology.kubernetes.io/zone
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: In
+              values:
+                - "true"
+
+# 生产节点选择器
+nodeSelector:
+  node-role.kubernetes.io/worker: "true"
+
+# 监控更密集
+monitoring:
+  enabled: true
+  namespace: monitoring
+  interval: 15s

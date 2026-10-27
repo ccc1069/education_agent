@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "multi-agent-edu.configMapName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "multi-agent-edu.labels" . | nindent 4 }}
+data:
+  ENV: {{ .Values.config.env | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  CORS_ORIGINS: {{ .Values.config.corsOrigins | quote }}
+  JWT_EXPIRES_MINUTES: {{ .Values.config.jwtExpiresMinutes | quote }}
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_GLOBAL_PER_MIN: {{ .Values.config.rateLimitGlobalPerMin | quote }}
+  RATE_LIMIT_LOGIN_PER_MIN: {{ .Values.config.rateLimitLoginPerMin | quote }}
+  # WebSocket 心跳(秒)
+  WS_RECEIVE_TIMEOUT: "60"
+  WS_PONG_TIMEOUT: "10"
+  # 任务调度
+  SCHEDULER_ENABLED: "true"
+  TASK_QUEUE_MAX_RETRIES: "3"

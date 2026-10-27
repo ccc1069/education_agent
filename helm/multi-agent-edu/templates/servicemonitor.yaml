@@ -1,0 +1,23 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Values.monitoring.namespace }}
+  labels:
+    {{- include "multi-agent-edu.labels" . | nindent 4 }}
+    release: prometheus  # kube-prometheus-stack 抓取标签
+spec:
+  selector:
+    matchLabels:
+      {{- include "multi-agent-edu.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.monitoring.interval | quote }}
+      scrapeTimeout: 10s
+      honorLabels: true
+{{- end }}

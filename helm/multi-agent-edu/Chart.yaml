@@ -1,0 +1,26 @@
+apiVersion: v2
+name: multi-agent-edu
+description: Multi-Agent Intelligent Education and Personalized Learning System (Python FastAPI)
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+keywords:
+  - education
+  - multi-agent
+  - llm
+  - fastapi
+  - langgraph
+home: https://github.com/example/multi-agent-edu
+sources:
+  - https://github.com/example/multi-agent-edu
+maintainers:
+  - name: Platform Team
+dependencies:
+  - name: postgresql
+    version: "15.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: "20.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

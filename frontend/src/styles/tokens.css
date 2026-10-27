@@ -1,0 +1,53 @@
+/* 设计 Token: 学院暖白风 */
+:root {
+  /* 颜色 */
+  --color-paper: #FBF8F3;
+  --color-card: #FFFFFF;
+  --color-ink: #1A1A1A;
+  --color-mist: #6B7280;
+  --color-mist-light: #9CA3AF;
+  --color-mist-dark: #4B5563;
+  --color-line: #E5E7EB;
+  --color-line-soft: #F3F4F6;
+
+  --color-moss: #1B4332;
+  --color-moss-light: #2D5A47;
+  --color-moss-dark: #0F2A1F;
+  --color-moss-50: #F0F4F1;
+  --color-moss-100: #DBE5DD;
+
+  --color-sienna: #D97757;
+  --color-sienna-light: #E8A085;
+  --color-sienna-dark: #B85A3D;
+
+  /* Agent 配色 */
+  --color-agent-assessment: #3B82F6;
+  --color-agent-tutor: #10B981;
+  --color-agent-curriculum: #F59E0B;
+  --color-agent-hint: #8B5CF6;
+  --color-agent-engagement: #F43F5E;
+  --color-agent-critic: #1B4332;
+  --color-agent-debate: #D97757;
+  --color-agent-api: #6B7280;
+
+  /* 字体 */
+  --font-serif: 'Fraunces', 'Noto Serif SC', Georgia, serif;
+  --font-sans: 'Geist', 'Noto Sans SC', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+
+  /* 间距 */
+  --space-header: 64px;
+  --space-sider: 240px;
+  --space-sider-collapsed: 72px;
+
+  /* 阴影 */
+  --shadow-card: 0 1px 2px rgba(15, 42, 31, 0.04), 0 0 0 1px #E5E7EB;
+  --shadow-lift: 0 4px 16px rgba(15, 42, 31, 0.06), 0 0 0 1px #E5E7EB;
+  --shadow-focus: 0 0 0 3px rgba(27, 67, 50, 0.12);
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}

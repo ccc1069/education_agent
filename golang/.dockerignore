@@ -1,0 +1,46 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 构建产物
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 测试
+*_test.go
+_test.go
+.coverage/
+coverage*.out
+coverage*.html
+
+# 文档
+*.md
+LICENSE
+
+# CI
+.github/
+.gitlab-ci.yml
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# 环境
+.env
+.env.*
+*.env
+
+# 其他
+.DS_Store
+Thumbs.db

@@ -1,0 +1,118 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: multi-agent-education
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/edu_agent}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: UTC
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+  h2:
+    console:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+logging:
+  level:
+    com.edu.agent: DEBUG
+    org.flywaydb: INFO
+
+app:
+  jwt:
+    secret: ${JWT_SECRET_KEY:CHANGE_ME_IN_PRODUCTION_NOT_FOR_REAL_USE_at_least_32_chars_required}
+    algorithm: HS256
+    access-token-expire-minutes: 30
+    refresh-token-expire-days: 7
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    global-per-min: ${RATE_LIMIT_GLOBAL_PER_MIN:100}
+    login-per-min: ${RATE_LIMIT_LOGIN_PER_MIN:5}
+    register-per-min: ${RATE_LIMIT_REGISTER_PER_MIN:3}
+    refresh-per-min: ${RATE_LIMIT_REFRESH_PER_MIN:10}
+  audit:
+    hmac-secret: ${AUDIT_HMAC_SECRET:}
+  embedding:
+    provider: ${APP_EMBEDDING_PROVIDER:mock}
+    api-key: ${APP_EMBEDDING_API_KEY:}
+    base-url: ${APP_EMBEDDING_BASE_URL:https://api.openai.com/v1}
+    model: ${APP_EMBEDDING_MODEL:text-embedding-3-small}
+    dimensions: ${APP_EMBEDDING_DIMENSIONS:1536}
+  scheduler:
+    enabled: ${SCHEDULER_ENABLED:true}
+    cleanup-tokens-cron: ${SCHEDULER_CLEANUP_CRON:0 0 3 * * ?}
+    daily-stats-cron: ${SCHEDULER_DAILY_STATS_CRON:0 5 0 * * ?}
+  llm:
+    api-key: ${APP_LLM_API_KEY:}
+    base-url: ${APP_LLM_BASE_URL:https://api.openai.com/v1}
+    model: ${APP_LLM_MODEL:gpt-4o-mini}
+    timeout-seconds: ${APP_LLM_TIMEOUT:30}
+    max-tokens: ${APP_LLM_MAX_TOKENS:1024}
+    temperature: ${APP_LLM_TEMPERATURE:0.7}
+    max-retries: ${APP_LLM_MAX_RETRIES:3}
+    retry-backoff-ms: ${APP_LLM_RETRY_BACKOFF:1000}
+    circuit-breaker-threshold: ${APP_LLM_CB_THRESHOLD:5}
+    circuit-breaker-duration-sec: ${APP_LLM_CB_DURATION:60}
+    provider: ${APP_LLM_PROVIDER:auto}
+    debate-rounds: ${APP_LLM_DEBATE_ROUNDS:2}
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:h2:mem:edudb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  h2:
+    console:
+      enabled: true
+app:
+  rate-limit:
+    enabled: false

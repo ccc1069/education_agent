@@ -1,0 +1,165 @@
+# ============================================================
+# 多Agent智能教育系统 - 全栈编排
+# 包含: PostgreSQL + Redis + Python API + Go API + Java API + 前端
+#
+# 启动:
+#   docker compose up --build
+#
+# 仅启动 Python 栈:
+#   docker compose up --build postgres redis python-api frontend
+#
+# 切换后端:注释/取消注释对应 service 块即可
+# ============================================================
+
+services:
+  # -------------------- 基础设施 --------------------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: edu_agent
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # 必须设置,无默认值
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d edu_agent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-}"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # -------------------- 数据库迁移 (Python Alembic) --------------------
+  migrate:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/edu_agent
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      - ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # -------------------- Python API 后端 --------------------
+  python-api:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/edu_agent
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - OPENAI_VISION_MODEL=${OPENAI_VISION_MODEL:-}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-0}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}  # 必须设置,无默认值
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - ENV=${ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # -------------------- Go API 后端 --------------------
+  go-api:
+    build:
+      context: ./golang
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - APP_JWT_SECRET=${JWT_SECRET_KEY}  # 复用 JWT 密钥
+      - APP_LLM_API_KEY=${OPENAI_API_KEY:-}
+      - APP_LLM_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - ENV=production
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/bin/wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    # Go 版使用内存存储,不依赖 postgres/redis (演示用途)
+    # 如需持久化,取消下面注释:
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    #   redis:
+    #     condition: service_healthy
+
+  # -------------------- Java API 后端 --------------------
+  java-api:
+    build:
+      context: ./java
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_URL=jdbc:postgresql://postgres:5432/edu_agent
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - APP_LLM_API_KEY=${OPENAI_API_KEY:-}
+      - RATE_LIMIT_ENABLED=true
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # -------------------- React 前端 --------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - python-api
+    restart: unless-stopped
+    # nginx 通过 /api 代理到 python-api,可改为 go-api 或 java-api
+
+volumes:
+  pgdata:

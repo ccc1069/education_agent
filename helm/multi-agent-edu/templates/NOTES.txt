@@ -1,0 +1,32 @@
+多 Agent 智能教育系统部署完成。
+
+1. 获取应用 URL:
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else }}
+  export NODE_IP=$(kubectl get nodes -o jsonpath="{.items[0].status.addresses[0].address}")
+  export NODE_PORT=$(kubectl get -n {{ .Release.Namespace }} svc {{ .Release.Name }} -o jsonpath="{.spec.ports[0].nodePort}")
+  echo "http://$NODE_IP:$NODE_PORT"
+{{- end }}
+
+2. 验证:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }} 8000:8000
+  curl http://localhost:8000/health
+
+3. 查看迁移 Job 日志(若启用):
+  kubectl -n {{ .Release.Namespace }} logs job/{{ .Release.Name }}-migrator
+
+4. 滚动更新(改 image.tag 后):
+  helm upgrade {{ .Release.Name }} . -f values-prod.yaml
+
+5. 关键资源:
+  - HPA: kubectl -n {{ .Release.Namespace }} get hpa
+  - PDB: kubectl -n {{ .Release.Namespace }} get pdb
+  - NetworkPolicy: kubectl -n {{ .Release.Namespace }} get networkpolicy
+
+⚠️ 生产部署前务必:
+  - 覆盖 values-prod.yaml 中所有 CHANGE_ME 与 REPLACE_WITH_SEALED_SECRET
+  - 用 Sealed Secrets 或 External Secrets 注入真实密钥
+  - 配置持久化存储类(fast-ssd)
